@@ -1,61 +1,55 @@
 # Create VPC
-resource "aws_vpc" "main" {
-  cidr_block       = "10.0.0.0/16"
+resource "aws_vpc" "vpn" {
+  cidr_block = var.vpc_cidr_block
+
   instance_tenancy = "default"
 
-  tags = {
-    Name = "main"
-  }
+  tags = merge(
+    {
+      Name = "vpn"
+    },
+    local.default_tags
+  )
 }
 
-# Create subnet 1
-resource "aws_subnet" "subnet_1" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = cidrsubnet(aws_vpc.main.cidr_block, 6, 1)
-  #   cidr_block = "10.0.1.0/24"
+resource "aws_flow_log" "vpn" {
+  vpc_id               = aws_vpc.vpn.id
+  traffic_type         = "ALL"
+  log_destination_type = "s3"
+  log_destination      = aws_s3_bucket.vpc_flow_logs.arn
+  # other required fields here
 
-  tags = {
-    Name = "subnet_1"
-  }
+  tags = merge(
+    {
+      Name = "vpn"
+    },
+    local.default_tags
+  )
 }
 
-# Create subnet 2
-resource "aws_subnet" "subnet_2" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = cidrsubnet(aws_vpc.main.cidr_block, 6, 2)
-  #   cidr_block = "10.0.1.0/24"
 
-  tags = {
-    Name = "subnet_2"
-  }
+# Subnet for VPN Clients
+resource "aws_subnet" "vpn" {
+  vpc_id     = aws_vpc.vpn.id
+  cidr_block = cidrsubnet(aws_vpc.vpn.cidr_block, 6, 1)
+
+  tags = merge(
+    {
+      Name = "vpn"
+    },
+    local.default_tags
+  )
 }
 
-# AWS instance
-data "aws_ami" "ubuntu" {
-  most_recent = true
+# Subnet to associate to VPN Clients
+resource "aws_subnet" "jump_server" {
+  vpc_id     = aws_vpc.vpn.id
+  cidr_block = cidrsubnet(aws_vpc.vpn.cidr_block, 6, 2)
 
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  owners = ["099720109477"] # Canonical
-}
-
-resource "aws_instance" "web" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t3.micro"
-
-  tags = {
-    Name = "Server-1"
-  }
-
-  #   lifecycle {
-  #       prevent_destroy = true
-  #   }
+  tags = merge(
+    {
+      Name = "jump_server"
+    },
+    local.default_tags
+  )
 }

@@ -1,4 +1,9 @@
-# locals {
-#    private_subnet_1 = aws_subnet.subnet_1.id
-#    private_subnet_2 = aws_subnet.subnet_2.id
-# }
+# Localised usage of merge() will override values set here if "${local.default_tags}" appears first.
+locals {
+  default_tags = {
+    Project     = "${var.project}"
+    Environment = "${var.environment}"
+    Owner       = "${var.owner}"
+    ManagedBy   = "Terraform"
+  }
+}
